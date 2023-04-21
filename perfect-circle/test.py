@@ -1,20 +1,35 @@
 import pygame
 import math
+
+
+def distance(point1, point2):
+    return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+
+
+def clearing():
+    sc.fill(0)
+    pos_hist.clear()
+    return False
+
+
 pygame.init()
 sc = pygame.display.set_mode((600, 600))
 check = True
 check_draw = False
 color = "white"
 start_pos = (0, 0)
-end_pps = (0, 0)
-width_line = 2
-threshold = 1  # Distance threshold for line closure
-
-def distance(p1, p2):
-    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+end_pos = (0, 0)
+width_line = 4
+pos_hist = []
+center_dot = (300, 300)
+radius_dot = 10
+min_distance = 50
+f = pygame.font.SysFont('EightBits', 40)
+text_table = f.render('too close to dote', True, 'red')
+text_table_center = text_table.get_rect(center=(300, 330))
 
 while check:
-    pygame.draw.circle(sc, 'white', (300, 300), 10)
+    pygame.draw.circle(sc, 'white', center_dot, radius_dot)
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
@@ -24,15 +39,16 @@ while check:
             check_draw = True
         if event.type == pygame.MOUSEMOTION:
             if check_draw:
-                end_pos = event.pos
-                pygame.draw.line(sc, color, start_pos, end_pos, width_line)
-                start_pos = end_pos
+                if start_pos not in pos_hist and distance(start_pos, center_dot) > radius_dot + min_distance:
+                    pos_hist.append(start_pos)
+                    end_pos = event.pos
+                    pygame.draw.line(sc, color, start_pos, end_pos, width_line)
+                    start_pos = end_pos
+                else:
+                    check_draw = clearing()
+                    sc.blit(text_table, text_table_center)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            check_draw = False
-            if distance(start_pos, event.pos) <= threshold:
-                sc.fill(0)
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
-            sc.fill(0)
+            check_draw = clearing()
     pygame.display.update()
 
 pygame.quit()
