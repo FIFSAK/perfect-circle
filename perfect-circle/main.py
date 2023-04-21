@@ -1,12 +1,5 @@
 import pygame
 
-
-def clearing():
-    check_draw = False
-    sc.fill(0)
-    pos_hist.clear()
-
-
 pygame.init()
 sc = pygame.display.set_mode((600, 600))
 check = True
@@ -16,6 +9,14 @@ start_pos = (0, 0)
 end_pps = (0, 0)
 width_line = 4
 pos_hist = []
+
+
+def clearing():
+    sc.fill(0)
+    pos_hist.clear()
+    return False
+
+
 while check:
     pygame.draw.circle(sc, 'white', (300, 300), 10)
     for event in pygame.event.get():
@@ -33,9 +34,9 @@ while check:
                     pygame.draw.line(sc, color, start_pos, end_pos, width_line)
                     start_pos = end_pos
                 else:
-                    clearing()
+                    check_draw = clearing()
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            clearing()
+            check_draw = clearing()
     pygame.display.update()
 
 pygame.quit()
