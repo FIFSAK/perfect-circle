@@ -20,13 +20,14 @@ pygame.init()
 sc = pygame.display.set_mode((600, 600))
 check = True  # Check for main while loop
 check_draw = False  # Check for drawing
-color = "white"
+red_intensity = 0
+green_intensity = 255
 start_pos = (0, 0)
 end_pos = (0, 0)
 width_line = 4
 pos_hist = []  # All mouse position history to use to catch moment when circle is finished
 center_dot = (300, 300)  # Center of dot around which the drawing will be done
-radius_dot = 10
+radius_dot = 3
 min_distance = 50  # Minimum distance when drawing is possible
 
 # Font and size of texts too slow and too close
@@ -44,9 +45,11 @@ too_slow_table_center = too_slow_table.get_rect(center=(300, 270))
 
 coord_counter = 0  # Count of coordinates which are drawn to find drawing speed
 start_time = 0  # Time when drawing started, used to find drawing speed
-
+percent = None
+radius_perfect_circle = None
 # Main loop
 while check:
+    color = (red_intensity, green_intensity, 0)
     # Draw circle around which the user will draw their circle
     pygame.draw.circle(sc, 'white', center_dot, radius_dot)
 
@@ -57,6 +60,7 @@ while check:
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # When left mouse button is pressed, determine start position, drawing check, and start time
             start_pos = event.pos
+            radius_perfect_circle = distance((300, 300), start_pos)
             check_draw = True
             coord_counter = 0
             start_time = time.time()
@@ -68,6 +72,31 @@ while check:
                     coord_counter += 1
                     end_pos = event.pos
                     pygame.draw.line(sc, color, start_pos, end_pos, width_line)
+                    radius_my_circle = distance((300, 300), end_pos)
+                    if radius_my_circle > radius_perfect_circle:
+                        percent = (radius_perfect_circle / radius_my_circle) * 100
+                        percent = float('{:.1f}'.format(percent))
+                    if radius_my_circle < radius_perfect_circle:
+                        percent = (radius_my_circle / radius_perfect_circle) * 100
+                        percent = float('{:.1f}'.format(percent))
+                    if percent < 65:
+                        check_draw = clearing()
+                        wrong_way_table = f.render('wrong way', True, 'red')
+                        wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
+                        sc.blit(wrong_way_table, wrong_way_table_center)
+                    if red_intensity < 255:
+                        red_intensity += (100 - percent) * 1.5
+                        if red_intensity > 255:
+                            red_intensity = 255
+                    if red_intensity == 255:
+                        green_intensity -= (100 - percent) * 1.5
+                        if green_intensity < 0:
+                            green_intensity = 0
+                    percent_table = f.render(str(percent), True, color)
+                    percent_table_center = percent_table.get_rect(center=(292.5, 293))
+                    pygame.draw.rect(sc, 'black', pygame.Rect(259, 280, 68, 30))
+                    sc.blit(percent_table, percent_table_center)
+
                     start_pos = end_pos
                 else:
                     check_draw = clearing()
@@ -78,15 +107,17 @@ while check:
                     sc.blit(too_close_table, too_close_table_center)
 
                 # If the drawing speed is too slow, clear the drawing and show the 'too slow' message
-                if coord_counter < 500 and (time.time() - start_time) >= 2:
+                if coord_counter < 300 and (time.time() - start_time) >= 2:
                     check_draw = clearing()
                     coord_counter = 0
                     sc.blit(too_slow_table, too_slow_table_center)
-                if coord_counter > 500 and (time.time() - start_time) >= 2:
+                if coord_counter > 300 and (time.time() - start_time) >= 2:
                     start_time = time.time()
                     coord_counter = 0
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             check_draw = clearing()
+            red_intensity = 0
+            green_intensity = 255
         pygame.display.update()
 
 pygame.quit()
