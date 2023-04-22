@@ -35,7 +35,7 @@ red_intensity = 0
 green_intensity = 255
 start_pos = (0, 0)
 end_pos = (0, 0)
-width_line = 4
+width_line = 1
 pos_hist = []  # All mouse position history to use to catch moment when circle is finished
 center_dot = (300, 300)  # Center of dot around which the drawing will be done
 radius_dot = 3
@@ -79,7 +79,7 @@ while check:
         if event.type == pygame.MOUSEMOTION:
             if check_draw:
                 # If the starting position is not in the history and the distance from the center dot is sufficient
-                if start_pos not in pos_hist and distance(start_pos, center_dot) > radius_dot + min_distance:
+                if pos_hist.count(start_pos) == 0 and distance(start_pos, center_dot) > radius_dot + min_distance:
                     pos_hist.append(start_pos)
                     coord_counter += 1
                     end_pos = event.pos
@@ -94,16 +94,17 @@ while check:
                         percent = float('{:.1f}'.format(percent))
                     # Add the current percentage value to the list
                     percent_hist.append(percent)
-                    # if percent < 50:
-                    #     check_draw = clearing()
-                    #     wrong_way_table = f.render('wrong way', True, 'red')
-                    #     wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
-                    #     sc.blit(wrong_way_table, wrong_way_table_center)
                     sensitivity = 4  # You can adjust the sensitivity value to your liking
                     red_intensity = 255 - 255 * ((percent / 100) ** sensitivity)
                     green_intensity = 255 * ((percent / 100) ** sensitivity)
-                    average_percent = sum(percent_hist) / len(percent_hist)
-                    average_percent = float('{:.1f}'.format(average_percent))
+                    # Calculate the average percentage only if the percent_hist list is not empty
+                    if len(percent_hist) > 0:
+                        average_percent = sum(percent_hist) / len(percent_hist)
+                        average_percent = float('{:.1f}'.format(average_percent))
+                    else:
+                        average_percent = 0
+                    # average_percent = sum(percent_hist) / len(percent_hist)
+                    # average_percent = float('{:.1f}'.format(average_percent))
 
                     percent_color = percentage_color(average_percent)
                     percent_table = f.render(str(average_percent), True, percent_color)
