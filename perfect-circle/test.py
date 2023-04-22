@@ -16,12 +16,22 @@ def clearing():
     return False
 
 
+def percentage_color(value):
+    if value <= 75:
+        return 'red'
+    else:
+        green_intensity_percent = 255 * ((value - 75) / 25)
+        return (0, green_intensity_percent, 0)
+
+
 pygame.init()
 sc = pygame.display.set_mode((600, 600))
 check = True  # Check for main while loop
 check_draw = False  # Check for drawing
 red_intensity = 0
 green_intensity = 255
+red_intensity_percent = 0
+green_intensity_percent = 255
 start_pos = (0, 0)
 end_pos = (0, 0)
 width_line = 4
@@ -46,10 +56,12 @@ too_slow_table_center = too_slow_table.get_rect(center=(300, 270))
 coord_counter = 0  # Count of coordinates which are drawn to find drawing speed
 start_time = 0  # Time when drawing started, used to find drawing speed
 percent = None
+percent_hist = []  # Store all percentage values to calculate the average
 radius_perfect_circle = None
 # Main loop
 while check:
     color = (red_intensity, green_intensity, 0)
+    color_percent = (red_intensity_percent, green_intensity_percent, 0)
     # Draw circle around which the user will draw their circle
     pygame.draw.circle(sc, 'white', center_dot, radius_dot)
 
@@ -73,26 +85,29 @@ while check:
                     end_pos = event.pos
                     pygame.draw.line(sc, color, start_pos, end_pos, width_line)
                     radius_my_circle = distance((300, 300), end_pos)
+
                     if radius_my_circle > radius_perfect_circle:
                         percent = (radius_perfect_circle / radius_my_circle) * 100
                         percent = float('{:.1f}'.format(percent))
                     if radius_my_circle < radius_perfect_circle:
                         percent = (radius_my_circle / radius_perfect_circle) * 100
                         percent = float('{:.1f}'.format(percent))
-                    if percent < 65:
+                    # Add the current percentage value to the list
+                    percent_hist.append(percent)
+                    if percent < 50:
                         check_draw = clearing()
                         wrong_way_table = f.render('wrong way', True, 'red')
                         wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
                         sc.blit(wrong_way_table, wrong_way_table_center)
-                    if red_intensity < 255:
-                        red_intensity += (100 - percent) * 1.5
-                        if red_intensity > 255:
-                            red_intensity = 255
-                    if red_intensity == 255:
-                        green_intensity -= (100 - percent) * 1.5
-                        if green_intensity < 0:
-                            green_intensity = 0
-                    percent_table = f.render(str(percent), True, color)
+                    sensitivity = 6  # You can adjust the sensitivity value to your liking
+                    red_intensity = 255 - 255 * ((percent / 100) ** sensitivity)
+                    green_intensity = 255 * ((percent / 100) ** sensitivity)
+
+                    red_intensity_percent = 255 - 255 * ((percent / 100) ** sensitivity)
+                    green_intensity_percent = 255 * ((percent / 100) ** sensitivity)
+                    average_percent = sum(percent_hist) / len(percent_hist)
+                    average_percent = float('{:.1f}'.format(average_percent))
+                    percent_table = f.render(str(average_percent), True, color_percent)
                     percent_table_center = percent_table.get_rect(center=(292.5, 293))
                     pygame.draw.rect(sc, 'black', pygame.Rect(259, 280, 68, 30))
                     sc.blit(percent_table, percent_table_center)
