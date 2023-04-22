@@ -2,15 +2,19 @@ import pygame
 import math
 import time
 
+
 # Function to find distance between 2 points
 def distance(point1, point2):
     return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
 
+
 # Function to clear surface and change check to false (mostly to change check_draw)
 def clearing():
     sc.fill(0)
+    pygame.draw.circle(sc, 'white', center_dot, radius_dot)
     pos_hist.clear()
     return False
+
 
 pygame.init()
 sc = pygame.display.set_mode((600, 600))
@@ -78,9 +82,9 @@ while check:
                     check_draw = clearing()
                     coord_counter = 0
                     sc.blit(too_slow_table, too_slow_table_center)
-                # else:
-                #     start_time = time.time()
-                #     coord_counter = 0
+                if coord_counter > 500 and (time.time() - start_time) >= 2:
+                    start_time = time.time()
+                    coord_counter = 0
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             check_draw = clearing()
         pygame.display.update()
