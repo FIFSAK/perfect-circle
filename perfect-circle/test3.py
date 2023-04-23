@@ -98,6 +98,8 @@ while check:
             check_draw = True
             full_circle_check = False
             coord_counter = 0
+            close_dot_check = True
+            draw_fast_check = True
             start_time = time.time()
         if event.type == pygame.MOUSEMOTION:
             if check_draw:
@@ -145,22 +147,30 @@ while check:
 
                 # If the distance from the center dot is too small, clear the drawing and show the 'too close' message
                 if distance(start_pos, center_dot) < radius_dot + min_distance:
+                    close_dot_check = False
                     check_draw = clearing()
+                    pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                    pygame.mixer.music.play()
                     sc.blit(too_close_table, too_close_table_center)
 
                 # If the drawing speed is too slow, clear the drawing and show the 'too slow' message
-                if coord_counter < 300 and (time.time() - start_time) >= 2:
+                elif coord_counter < 500 and (time.time() - start_time) >= 2:
+                    pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                    pygame.mixer.music.play()
                     check_draw = clearing()
                     coord_counter = 0
                     sc.blit(too_slow_table, too_slow_table_center)
-                if coord_counter > 300 and (time.time() - start_time) >= 2:
+                    draw_fast_check = False
+                elif coord_counter > 300 and (time.time() - start_time) >= 2:
                     start_time = time.time()
                     coord_counter = 0
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             check_draw = False
-            if not full_circle_check:
+            if not full_circle_check and close_dot_check and draw_fast_check:
+                pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                pygame.mixer.music.play()
                 draw_full_circle = f.render('draw full circle', True, 'red')
-                sc.blit(draw_full_circle, draw_full_circle.get_rect(center=(300, 330)))
+                sc.blit(draw_full_circle, draw_full_circle.get_rect(center=(300, 230)))
             red_intensity = 0
             green_intensity = 255
         pygame.display.update()
