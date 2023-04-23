@@ -46,6 +46,55 @@ def percentage_color(value, sensitivity=2):
         green_intensity = 255
     return (red_intensity, green_intensity, 0)
 
+def extend_line_to_edge(point1, point2, screen_size):
+    x1, y1 = point1
+    x2, y2 = point2
+    screen_width, screen_height = screen_size
+
+    if x1 == x2:
+        return (x1, 0), (x1, screen_height)
+
+    slope = (y2 - y1) / (x2 - x1)
+    y_intercept = y1 - slope * x1
+
+    line_points = []
+
+    if slope != 0:
+        y_at_left_edge = y_intercept
+        y_at_right_edge = slope * screen_width + y_intercept
+        x_at_top_edge = -y_intercept / slope
+        x_at_bottom_edge = (screen_height - y_intercept) / slope
+
+        if 0 <= y_at_left_edge <= screen_height:
+            line_points.append((0, y_at_left_edge))
+
+        if 0 <= y_at_right_edge <= screen_height:
+            line_points.append((screen_width, y_at_right_edge))
+
+        if 0 <= x_at_top_edge <= screen_width:
+            line_points.append((x_at_top_edge, 0))
+
+        if 0 <= x_at_bottom_edge <= screen_width:
+            line_points.append((x_at_bottom_edge, screen_height))
+
+    if len(line_points) == 2:
+        return line_points[0], line_points[1]
+
+    return None
+
+def angle_between_points(center, start, current):
+    a = distance(center, start)
+    b = distance(center, current)
+    c = distance(start, current)
+
+    cos_angle = (a**2 + b**2 - c**2) / (2 * a * b)
+    angle = math.degrees(math.acos(cos_angle))
+
+    return angle
+
+
+
+
 
 pygame.init()
 sc = pygame.display.set_mode((600, 600))
@@ -100,6 +149,7 @@ while check:
             coord_counter = 0
             close_dot_check = True
             draw_fast_check = True
+            intersection_check = True
             start_time = time.time()
         if event.type == pygame.MOUSEMOTION:
             if check_draw:
@@ -110,6 +160,29 @@ while check:
                     end_pos = event.pos
                     pygame.draw.line(sc, color, start_pos, end_pos, width_line)
                     radius_my_circle = distance((300, 300), end_pos)
+                    invisible_line = extend_line_to_edge(center_dot, end_pos, (600, 600))
+                    intersection_count = 0
+                    if invisible_line is not None:
+                        for i in range(len(pos_hist) - 1):
+                            old_line = (pos_hist[i], pos_hist[i + 1])
+                            if line_intersection(invisible_line, old_line):
+                                intersection_count += 1
+                    angle = angle_between_points(center_dot, pos_hist[0], end_pos)
+
+                    if angle > 180:
+                        check_draw = False
+                        full_circle_check = True
+                        wrong_way_table = f.render('wrong way', True, 'red')
+                        wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
+                        sc.blit(wrong_way_table, wrong_way_table_center)
+
+                    if intersection_count == 2:
+                        wrong_way_table = f.render('wrong way', True, 'red')
+                        wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
+                        sc.blit(wrong_way_table, wrong_way_table_center)
+                        check_draw = False
+                        intersection_check = False
+
                     if len(pos_hist) > 1:
                         new_line = (pos_hist[-1], end_pos)
                         for i in range(len(pos_hist) - 2):
@@ -166,7 +239,7 @@ while check:
                     coord_counter = 0
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             check_draw = False
-            if not full_circle_check and close_dot_check and draw_fast_check:
+            if not full_circle_check and close_dot_check and draw_fast_check and intersection_check:
                 pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
                 pygame.mixer.music.play()
                 draw_full_circle = f.render('draw full circle', True, 'red')

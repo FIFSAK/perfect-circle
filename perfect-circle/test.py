@@ -17,6 +17,25 @@ def clearing():
     return False
 
 
+def line_intersection(line1, line2):
+    x1, y1 = line1[0]
+    x2, y2 = line1[1]
+    x3, y3 = line2[0]
+    x4, y4 = line2[1]
+
+    denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+
+    if denominator == 0:
+        return False
+
+    t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator
+    u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator
+
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        return True
+
+    return False
+
 
 def percentage_color(value, sensitivity=2):
     if value <= 75:
@@ -27,44 +46,44 @@ def percentage_color(value, sensitivity=2):
         green_intensity = 255
     return (red_intensity, green_intensity, 0)
 
+def extend_line_to_edge(point1, point2, screen_size):
+    x1, y1 = point1
+    x2, y2 = point2
+    screen_width, screen_height = screen_size
 
-def line_intersection_with_screen(center, start_pos, screen_size):
-    dx, dy = start_pos[0] - center[0], start_pos[1] - center[1]
+    if x1 == x2:
+        return (x1, 0), (x1, screen_height)
 
-    if abs(dx) > abs(dy):
-        if dx > 0:
-            x = screen_size[0]
-        else:
-            x = 0
-        y = center[1] + dy * (x - center[0]) / dx
-    else:
-        if dy > 0:
-            y = screen_size[1]
-        else:
-            y = 0
-        x = center[0] + dx * (y - center[1]) / dy
+    slope = (y2 - y1) / (x2 - x1)
+    y_intercept = y1 - slope * x1
 
-    return int(x), int(y)
+    line_points = []
+
+    if slope != 0:
+        y_at_left_edge = y_intercept
+        y_at_right_edge = slope * screen_width + y_intercept
+        x_at_top_edge = -y_intercept / slope
+        x_at_bottom_edge = (screen_height - y_intercept) / slope
+
+        if 0 <= y_at_left_edge <= screen_height:
+            line_points.append((0, y_at_left_edge))
+
+        if 0 <= y_at_right_edge <= screen_height:
+            line_points.append((screen_width, y_at_right_edge))
+
+        if 0 <= x_at_top_edge <= screen_width:
+            line_points.append((x_at_top_edge, 0))
+
+        if 0 <= x_at_bottom_edge <= screen_width:
+            line_points.append((x_at_bottom_edge, screen_height))
+
+    if len(line_points) == 2:
+        return line_points[0], line_points[1]
+
+    return None
 
 
-def linefun(pos1, pos2):
-    x1 = pos1[0]
-    y1 = pos1[1]
-    x2 = pos2[0]
-    y2 = pos2[1]
-    k = (y1 - y2) / (x1 - x2)
-    b = y2 - k * x2
-    return k, b
 
-
-def valuefun(k, b, pos):
-    return pos[1] == k * pos[0] + b
-
-def crossed_line(pos1, pos2, k, b):
-    y1 = k * pos1[0] + b
-    y2 = k * pos2[0] + b
-
-    return (pos1[1] < y1 and pos2[1] > y2) or (pos1[1] > y1 and pos2[1] < y2)
 
 
 pygame.init()
@@ -75,7 +94,7 @@ red_intensity = 0
 green_intensity = 255
 start_pos = (0, 0)
 end_pos = (0, 0)
-width_line = 1
+width_line = 4
 pos_hist = []  # All mouse position history to use to catch moment when circle is finished
 center_dot = (300, 300)  # Center of dot around which the drawing will be done
 radius_dot = 3
@@ -99,10 +118,7 @@ start_time = 0  # Time when drawing started, used to find drawing speed
 percent = None
 percent_hist = []  # Store all percentage values to calculate the average
 radius_perfect_circle = None
-reference_line = None
-check_for_valuefun = False
-cnt = 0
-cross_count = 0
+full_circle_check = False
 # Main loop
 while check:
     color = (red_intensity, green_intensity, 0)
@@ -114,31 +130,49 @@ while check:
             if event.key == pygame.K_RETURN:  # If Enter is pressed, the game will stop
                 check = False
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            check_draw = clearing()
             # When left mouse button is pressed, determine start position, drawing check, and start time
             start_pos = event.pos
             radius_perfect_circle = distance((300, 300), start_pos)
             check_draw = True
+            full_circle_check = False
             coord_counter = 0
+            close_dot_check = True
+            draw_fast_check = True
+            intersection_check = True
             start_time = time.time()
-            reference_line = line_intersection_with_screen(center_dot, start_pos, sc.get_size())
-            k, b = linefun(center_dot, reference_line)
-
         if event.type == pygame.MOUSEMOTION:
-
             if check_draw:
-                if abs(abs(start_pos[1]) - abs((start_pos[0] * k) + b)) < 1:
-                    cnt += 1
                 # If the starting position is not in the history and the distance from the center dot is sufficient
-                if pos_hist.count(start_pos) == 0 and distance(start_pos,
-                                                               center_dot) > radius_dot + min_distance and cross_count < 2:
-
+                if distance(start_pos, center_dot) > radius_dot + min_distance:
                     pos_hist.append(start_pos)
                     coord_counter += 1
                     end_pos = event.pos
-                    if crossed_line(start_pos, end_pos, k, b):
-                        cross_count += 1
                     pygame.draw.line(sc, color, start_pos, end_pos, width_line)
                     radius_my_circle = distance((300, 300), end_pos)
+                    invisible_line = extend_line_to_edge(center_dot, end_pos, (600, 600))
+                    intersection_count = 0
+                    if invisible_line is not None:
+                        for i in range(len(pos_hist) - 1):
+                            old_line = (pos_hist[i], pos_hist[i + 1])
+                            if line_intersection(invisible_line, old_line):
+                                intersection_count += 1
+
+                    if intersection_count == 2:
+                        wrong_way_table = f.render('wrong way', True, 'red')
+                        wrong_way_table_center = wrong_way_table.get_rect(center=(300, 330))
+                        sc.blit(wrong_way_table, wrong_way_table_center)
+                        check_draw = False
+                        intersection_check = False
+
+                    if len(pos_hist) > 1:
+                        new_line = (pos_hist[-1], end_pos)
+                        for i in range(len(pos_hist) - 2):
+                            old_line = (pos_hist[i], pos_hist[i + 1])
+                            if line_intersection(new_line, old_line):
+                                check_draw = False
+                                full_circle_check = True
+                                break
                     if radius_my_circle > radius_perfect_circle:
                         percent = (radius_perfect_circle / radius_my_circle) * 100
                         percent = float('{:.1f}'.format(percent))
@@ -165,30 +199,35 @@ while check:
                     sc.blit(percent_table, percent_table_center)
 
                     start_pos = end_pos
-                else:
-                    check_draw = clearing()
-                    cross_count = 0  # Reset cross_count when clearing
-                    cnt = 0
+
                 # If the distance from the center dot is too small, clear the drawing and show the 'too close' message
                 if distance(start_pos, center_dot) < radius_dot + min_distance:
+                    close_dot_check = False
                     check_draw = clearing()
+                    pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                    pygame.mixer.music.play()
                     sc.blit(too_close_table, too_close_table_center)
 
                 # If the drawing speed is too slow, clear the drawing and show the 'too slow' message
-                if coord_counter < 300 and (time.time() - start_time) >= 2:
+                elif coord_counter < 500 and (time.time() - start_time) >= 2:
+                    pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                    pygame.mixer.music.play()
                     check_draw = clearing()
                     coord_counter = 0
                     sc.blit(too_slow_table, too_slow_table_center)
-                if coord_counter > 300 and (time.time() - start_time) >= 2:
+                    draw_fast_check = False
+                elif coord_counter > 300 and (time.time() - start_time) >= 2:
                     start_time = time.time()
                     coord_counter = 0
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            check_draw = clearing()
-            cnt = 0
+            check_draw = False
+            if not full_circle_check and close_dot_check and draw_fast_check and intersection_check:
+                pygame.mixer.music.load(r"sounds\error-126627_TC403uZU.mp3")
+                pygame.mixer.music.play()
+                draw_full_circle = f.render('draw full circle', True, 'red')
+                sc.blit(draw_full_circle, draw_full_circle.get_rect(center=(300, 230)))
             red_intensity = 0
             green_intensity = 255
-        if check_draw and reference_line:
-            pygame.draw.line(sc, 'black', center_dot, reference_line, width_line)
         pygame.display.update()
 
 pygame.quit()
