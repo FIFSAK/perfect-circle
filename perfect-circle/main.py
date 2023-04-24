@@ -103,6 +103,8 @@ while check:
     pygame.draw.circle(sc, 'white', center_dot, radius_dot)
 
     for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            check = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:  # If Enter is pressed, the game will stop
                 check = False
