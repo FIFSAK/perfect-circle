@@ -137,10 +137,10 @@ while check:
                         average_percent = 0
 
                     percent_color = percentage_color(average_percent)
-                    percent_table = f.render(str(average_percent), True, percent_color)
+                    percent_table = f.render(str(average_percent)+'%', True, percent_color)
 
-                    percent_table_center = percent_table.get_rect(center=(292.5, 293))
-                    pygame.draw.rect(sc, 'black', pygame.Rect(259, 280, 68, 30))
+                    percent_table_center = percent_table.get_rect(center=(303.7, 293))
+                    pygame.draw.rect(sc, 'black', pygame.Rect(252, 280, 92, 30))
                     sc.blit(percent_table, percent_table_center)
 
                     start_pos = end_pos
