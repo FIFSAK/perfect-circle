@@ -207,7 +207,7 @@ while check:
                     coord_counter = 0
                     sc.blit(too_slow_table, too_slow_table_center)
                     draw_fast_check = False
-                elif coord_counter > 300 and (time.time() - start_time) >= 2:
+                elif coord_counter > 350 and (time.time() - start_time) >= 1:
                     start_time = time.time()
                     coord_counter = 0
 
